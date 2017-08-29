@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>View News</title>
+</head>
+<body>
+    <div style="margin:auto; border:1px solid black; margin-top:200px; height:300px; min-width:600px; max-width:600px; box-shadow:2px 2px 2px 2px; border-radius:10px;">
+        <center style="margin-top:50px;">
+        <h1>Enter URL for Newspaper List XML File</h1><br/>
+        <form  id="myform" method="POST" id="location">
+            <input type="text" name="URL" maxlength="255" size="38" style="height:20px;"/>
+            <br/><br/>
+            <input type="submit" name="submit" value="Submit Query" onClick="viewXML(this.form)" style="width:155px; height:30px;" />
+        </form>
+        </center>
+    <script>
+        function viewXML(what)
+        {
+            var URL = what.URL.value;
+            function loadXML(url) {
+                if (window.XMLHttpRequest)
+                {// code for IE7+, Firefox, Chrome, Opera, Safari
+                xmlhttp=new XMLHttpRequest(); 
+                }
+                else {// code for IE6, IE5
+                xmlhttp=new ActiveXObject("Microsoft.XMLHTTP"); 
+                }
+                xmlhttp.open("GET",url,false);
+                xmlhttp.send();
+                if(xmlhttp.status==404){
+                    if(url.indexOf(".xml")>=0){
+                        alert("Page not found!!");
+                        document.getElementById("myform").reset();
+                    }
+                    else{
+                        alert("File entered is not a .xml format or Does not Exist!!");
+                        document.getElementById("myform").reset();
+                    }
+                    return 0;
+                }
+                else if(xmlhttp.status==200){
+                    xmlDoc=xmlhttp.responseXML;
+                    if(xmlDoc==null){
+                        alert("Error in xml parsing, not a valid file!!");
+                        document.getElementById("myform").reset();
+                        return 0;
+                    }
+					else if(xmlDoc.documentElement.nodeName=="parsererror"){
+						alert("Error in xml parsing, not a valid file!!");
+                        document.getElementById("myform").reset();
+                        return 0;
+					}
+                    else 
+                        return xmlDoc;
+                }
+                xmlDoc=xmlhttp.responseXML;
+                return xmlDoc; 
+            }
+            if(URL==""||/^\s+$/.test(URL)){
+                alert("Enter URL before submit!!");
+                document.getElementById("myform").reset();
+                return ;
+            }
+            xmlDoc=loadXML(URL);
+            var row = xmlDoc.getElementsByTagName("Row");
+            if(row.length==0){
+                alert("XML without any News channels");
+                document.getElementById("myform").reset();
+                return;
+            }
+            if (window.ActiveXObject) //if IE, simply execute script (due to async prop).
+            { 
+                if (xmlDoc.parseError.errorCode != 0) {
+                    var myErr = xmlDoc.parseError;
+                    generateError(xmlDoc);
+                    hWin = window.open("", "Error", "scrollbars=1,height=300,width=340");
+                    hWin.document.write(html_text);
+                } else { 
+                    generateHTML(xmlDoc);
+                    hWin = window.open("", "Assignment4", "scrollbars=1,height=800,width=1000");
+                    hWin.document.write(html_text); 
+                }
+            } else{ //else if FF, execute script once XML object has loaded
+                xmlDoc.onload=generateHTML(xmlDoc);
+                hWin = window.open("", "Assignment4", "scrollbars=1,height=800,width=1000");
+                hWin.document.write(html_text); 
+            }
+            hWin.document.close(); 
+        }
+        function generateHTML(xmlDoc)
+        { 
+            ELEMENT_NODE = 1; // MS parser doesn't define Node.ELEMENT_NODE
+            root=xmlDoc.DocumentElement;
+            var tbrow = xmlDoc.getElementsByTagName("Row");
+            if(tbrow.length==0){
+                alert("XML without any News channels");
+                document.getElementById("myform").reset();
+                return null;
+            }
+            html_text="<html><head><title>Online Newspaper Listings</title></head><body>";
+            html_text+="<table border='2'>";
+            head=xmlDoc.getElementsByTagName("Header");
+            headNodeList=head.item(0).childNodes;
+            html_text+="<tbody>";
+            html_text+="<tr><b>";
+            x=260; y=200;
+            for(i=0;i<headNodeList.length;i++){
+                if(headNodeList.item(i).nodeType==ELEMENT_NODE){
+                    if(headNodeList.item(i).firstChild==null){
+                        header="";
+                    }
+                    else
+                        header=headNodeList.item(i).firstChild.nodeValue;
+                    
+                    html_text+="<th>"+header+"</th>";
+                }
+            }
+            html_text+="</b></tr>";
+            tbrowNodeList = tbrow.item(0).childNodes;
+            for(i=0;i<tbrow.length;i++){
+                tbrowNodeList=tbrow.item(i).childNodes;
+                html_text+="<tr>";
+                for(j=0;j<tbrowNodeList.length;j++){
+                    if(tbrowNodeList.item(j).nodeType==ELEMENT_NODE){
+                        if(tbrowNodeList.item(j).nodeName=="Logo"){             /*images*/
+                            if(tbrowNodeList.item(j).firstChild==null)
+                               html_text+="<td height='200' width='200'> </td>";
+                            else
+                               html_text+="<td height='200' width='200'><img src='"+tbrowNodeList.item(j).firstChild.nodeValue+"' width='"+x+"' height='"+y+"'></td>";  
+                        }
+                        else if(tbrowNodeList.item(j).nodeName=="Location"){    /* Location*/
+                            var len = tbrowNodeList.item(j).childNodes.length;
+                            locationList=tbrowNodeList.item(j).childNodes;
+                            if(len==0){
+                                html_text+="<td height='200' width='250'>NA</td>";
+                            }
+                            else{
+                                html_text+="<td height='200' width='250'><ul>";
+                                for(k=0;k<len;k++){
+                                    if(locationList.item(k).nodeType==ELEMENT_NODE){ 
+									if(locationList.item(k).firstChild==null||/^\s+$/.test(locationList.item(k).firstChild.nodeValue)){
+                                            html_text+=" ";
+                                        }
+                                        else{
+                                            html_text+="<li>"+locationList.item(k).firstChild.nodeValue+"</li>";
+                                        }
+                                    }
+                                }
+                                html_text+="</ul></td>";
+                            }
+                        }
+                        else if (tbrowNodeList.item(j).nodeName=="HomePage"){   /*link to home page*/
+                            if(tbrowNodeList.item(j).firstChild==null)
+                               html_text+="<td height='200' width='400'> </td>";
+                            else
+                               html_text+="<td height='200' width='400'><a href='"+tbrowNodeList.item(j).firstChild.nodeValue+"'>"+tbrowNodeList.item(j).firstChild.nodeValue+"</a></td>"; 
+                        }
+                        else {
+                            if(tbrowNodeList.item(j).firstChild==null)
+                               html_text+="<td height='200' width='500'> </td>";
+                            else
+                               html_text+="<td height='200' width='500'>"+tbrowNodeList.item(j).firstChild.nodeValue+"</td>";
+                        } 
+                    }
+                }
+                
+                html_text+="</tr>";     
+            }
+            html_text+="</tr>";
+            html_text+="</tbody>"; 
+            html_text+="</table>";
+            html_text+="<noscript/></body></html>"; 
+        }
+    </script>
+    </div>
+<noscript/></body>
+</html>
+
+
