@@ -1,0 +1,7 @@
+input #search {
+    background-image: url(images/search.png);
+    background-repeat: no-repeat;
+    text-indent: 20px;
+}
+
+#search:active { background-image: none; }
